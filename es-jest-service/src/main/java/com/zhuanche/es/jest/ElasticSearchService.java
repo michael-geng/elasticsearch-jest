@@ -51,10 +51,11 @@ public class ElasticSearchService {
         this.esUrl = esUrl;
         this.maxTotal = maxTotal;
         this.perTotal = perTotal;
+        String[] urls = esUrl.split(",");
 
         JestClientFactory factory = new JestClientFactory();
         factory.setHttpClientConfig(new HttpClientConfig
-                .Builder(esUrl)
+                .Builder(Arrays.asList(urls))
                 .multiThreaded(true)
                 .defaultMaxTotalConnectionPerRoute(Integer.valueOf(maxTotal))
                 .maxTotalConnection(Integer.valueOf(perTotal))
@@ -544,12 +545,6 @@ public class ElasticSearchService {
 
         sourceBuilder.timeout(new TimeValue(60, TimeUnit.SECONDS));
 
-        //增加多个值排序
-        if (constructor.getSorts() != null) {
-            constructor.getSorts().forEach((key, value) -> {
-                sourceBuilder.sort(SortBuilders.fieldSort(key).order(value));
-            });
-        }
         sourceBuilder.aggregation(AggregationBuilders.terms("agg").field(groupBy));
 
         //不需要 source
