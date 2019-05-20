@@ -54,6 +54,12 @@ public class ESSimpleExpression {
             case FUZZY:
                 qb = QueryBuilders.fuzzyQuery(fieldName, value);
                 break;
+            case WILD:
+                qb = QueryBuilders.wildcardQuery(fieldName, value.toString());
+                break;
+            case PREFIX:
+                qb = QueryBuilders.prefixQuery(fieldName, value.toString());
+                break;
             case QUERY_STRING:
                 qb = QueryBuilders.queryStringQuery(value.toString());
         }

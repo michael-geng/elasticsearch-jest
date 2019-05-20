@@ -9,7 +9,7 @@ import java.util.List;
  */
 public interface ESCriterion {
     public enum Operator {
-        TERM, TERMS, RANGE, FUZZY, QUERY_STRING, MISSING
+        TERM, TERMS, RANGE, FUZZY, QUERY_STRING, MISSING, WILD, PREFIX
     }
 
     public enum MatchMode {

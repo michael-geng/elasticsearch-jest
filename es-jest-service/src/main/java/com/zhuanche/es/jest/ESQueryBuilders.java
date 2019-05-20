@@ -59,6 +59,25 @@ public class ESQueryBuilders implements ESCriterion{
         return this;
     }
 
+    /**
+     * 功能描述：wild 查询
+     * @param value 查询语句
+     */
+    public ESQueryBuilders wildString(String field, String value) {
+        list.add(new ESSimpleExpression (value, Operator.WILD).toBuilder());
+        return this;
+    }
+
+    /**
+     * 功能描述：prefix 查询
+     * @param value 查询语句
+     */
+    public ESQueryBuilders prefixString(String field, String value) {
+        list.add(new ESSimpleExpression (value, Operator.PREFIX).toBuilder());
+        return this;
+    }
+
+
     public List<QueryBuilder> listBuilders() {
         return list;
     }

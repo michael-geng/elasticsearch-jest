@@ -478,7 +478,6 @@ public class ElasticSearchService {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         //sourceBuilder.query(QueryBuilders.matchAllQuery());
         sourceBuilder.query(constructor.listBuilders());
-
         sourceBuilder.from((constructor.getFrom()));
         sourceBuilder.size(constructor.getSize() > MAX_SIZE ? MAX_SIZE : constructor.getSize());
 
