@@ -64,7 +64,7 @@ public class ESQueryBuilders implements ESCriterion{
      * @param value 查询语句
      */
     public ESQueryBuilders wildString(String field, String value) {
-        list.add(new ESSimpleExpression (value, Operator.WILD).toBuilder());
+        list.add(new ESSimpleExpression (field, value, Operator.WILD).toBuilder());
         return this;
     }
 
@@ -73,7 +73,7 @@ public class ESQueryBuilders implements ESCriterion{
      * @param value 查询语句
      */
     public ESQueryBuilders prefixString(String field, String value) {
-        list.add(new ESSimpleExpression (value, Operator.PREFIX).toBuilder());
+        list.add(new ESSimpleExpression (field, value, Operator.PREFIX).toBuilder());
         return this;
     }
 
