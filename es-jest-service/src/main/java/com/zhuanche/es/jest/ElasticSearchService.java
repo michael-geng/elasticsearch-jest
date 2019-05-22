@@ -474,7 +474,7 @@ public class ElasticSearchService {
      * @param constructor 查询构造
      */
     public <T> Page<T> search(String index, String type, Class<T> clazz, ESQueryBuilderConstructor constructor) {
-        Page<T> page = new Page<>();
+        Page<T> page = null;
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         //sourceBuilder.query(QueryBuilders.matchAllQuery());
         sourceBuilder.query(constructor.listBuilders());
@@ -506,18 +506,23 @@ public class ElasticSearchService {
         SearchResult result = null;
         try {
             result = client.execute(search);
+            logger.debug("查询结果:{}", result.getJsonString());
+            if (result.isSucceeded()){
+                List<T> list = new ArrayList<>();
+
+                result.getHits(clazz).forEach(item -> {
+                    list.add(item.source);
+                });
+                page = new Page<>();
+                page.setList(list).setCount(result.getTotal());
+            }else {
+                logger.error("index search result: {}", result.getJsonString());
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
+            logger.error("error: {}", e);
         }
-        logger.debug("查询结果:{}", result.getJsonString());
-        List<T> list = new ArrayList<>();
-
-        result.getHits(clazz).forEach(item -> {
-            list.add(item.source);
-        });
-
-        page.setList(list).setCount(result.getTotal());
-
         return page;
     }
 
@@ -556,15 +561,19 @@ public class ElasticSearchService {
         SearchResult result = null;
         try {
             result = client.execute(search);
+            logger.debug("result:{}", result.getJsonString());
+            if (result.isSucceeded()){
+                result.getAggregations().getTermsAggregation("agg").getBuckets().forEach(item -> {
+                    map.put(item.getKey(), item.getCount());
+                });
+            }else {
+                logger.error("error, result: {}", result.getJsonString());
+            }
         } catch (IOException e) {
             e.printStackTrace();
+            logger.error("index stat exception: {}", e);
         }
-        System.out.println("返回的聚合：" + result.getJsonString());
-
-        result.getAggregations().getTermsAggregation("agg").getBuckets().forEach(item -> {
-            map.put(item.getKey(), item.getCount());
-        });
-
+        //System.out.println("返回的聚合：" + result.getJsonString());
         return map;
     }
 
