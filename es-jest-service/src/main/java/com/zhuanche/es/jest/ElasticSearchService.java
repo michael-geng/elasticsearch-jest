@@ -529,8 +529,7 @@ public class ElasticSearchService {
 
 
     /**
-     * 功能描述：统计查询
-     *
+     * 功能描述：单个域值的聚合
      * @param index       索引名
      * @param type        类型
      * @param constructor 查询构造
@@ -538,30 +537,8 @@ public class ElasticSearchService {
      */
     public Map<String, Object> statSearch(String index, String type, ESQueryBuilderConstructor constructor, String groupBy) throws Exception {
         Map<String, Object> map = new HashedMap();
-        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        if (constructor != null) {
-            sourceBuilder.query(constructor.listBuilders());
-        } else {
-            sourceBuilder.query(QueryBuilders.matchAllQuery());
-        }
 
-        sourceBuilder.from((constructor.getFrom()));
-        sourceBuilder.size(constructor.getSize() > 0 ? constructor.getSize() : 0);
-
-        sourceBuilder.timeout(new TimeValue(60, TimeUnit.SECONDS));
-
-        sourceBuilder.aggregation(AggregationBuilders.terms("agg").field(groupBy));
-
-        //不需要 source .timeZone(DateTimeZone.forID("Asia/Shanghai"))
-        sourceBuilder.fetchSource(false);
-        logger.debug("查询条件:{}", sourceBuilder.toString());
-
-        Search search = new Search.Builder(sourceBuilder.toString())
-                .addIndex(index)
-                .addType(type).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-                .build();
-        SearchResult result = null;
-        result = client.execute(search);
+        SearchResult result = stat(index, type, constructor, AggregationBuilders.terms("agg").field(groupBy));
         logger.debug("result:{}", result.getJsonString());
 
         if (result.isSucceeded()){
@@ -571,14 +548,11 @@ public class ElasticSearchService {
         }else {
             logger.error("error, result: {}", result.getJsonString());
         }
-
-        //System.out.println("返回的聚合：" + result.getJsonString());
         return map;
     }
 
     /**
-     * 功能描述：统计查询
-     *
+     * 功能描述：自定义域值分组统计
      * @param index       索引名
      * @param type        类型
      * @param constructor 查询构造
@@ -590,6 +564,27 @@ public class ElasticSearchService {
             throw new ESServiceException("aggregationBuilder 不能为空");
         }
         Map<String, Object> map = new HashedMap();
+
+        SearchResult result = stat(index, type, constructor, agg);
+        logger.debug("result:{}", result.getJsonString());
+
+        result.getAggregations().getTermsAggregation(agg.getName()).getBuckets().forEach(item -> {
+            map.put(item.getKey(), item.getCount());
+        });
+
+        return map;
+    }
+
+
+    /**
+     * 功能描述：统计查询
+     * @param index       索引名
+     * @param type        类型
+     * @param constructor 查询构造
+     * @param agg         自定义计算
+     */
+    public SearchResult stat(String index, String type, ESQueryBuilderConstructor constructor, AggregationBuilder agg) throws Exception{
+
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         if (constructor != null) {
             sourceBuilder.query(constructor.listBuilders());
@@ -618,16 +613,11 @@ public class ElasticSearchService {
                 .addIndex(index)
                 .addType(type).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .build();
-        SearchResult result = null;
-        result = client.execute(search);
+
+        SearchResult result = client.execute(search);
+
         logger.debug("result:{}", result.getJsonString());
 
-        result.getAggregations().getTermsAggregation(agg.getName()).getBuckets().forEach(item -> {
-            map.put(item.getKey(), item.getCount());
-        });
-
-        return map;
+        return result;
     }
-
-
 }

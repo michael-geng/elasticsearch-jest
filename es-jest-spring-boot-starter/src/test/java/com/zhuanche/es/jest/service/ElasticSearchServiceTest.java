@@ -7,6 +7,7 @@ import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -178,6 +179,27 @@ public class ElasticSearchServiceTest {
                 .forEach(entry -> {
                     System.out.println(new DateTime(new Date(Long.valueOf(entry.getKey().toString()))).toString("yyyy-MM-dd") + "---" + entry.getValue());
         });
+
+    }
+
+    @Test
+    public void testStat3() throws Exception{
+        //多级别统计,这种情况，只能返回 result 自己处理了
+        ESQueryBuilderConstructor constructor = new ESQueryBuilderConstructor();
+        constructor.setFrom(0);
+        constructor.setSize(0);
+        //加上时间过滤
+        DateTime start = new DateTime().plusDays(-10);
+        constructor.must(new ESQueryBuilders().range("createDate", start.toDate().getTime(), new DateTime().toDate().getTime()));
+
+        TermsAggregationBuilder builder = AggregationBuilders.terms("agg").field("sheetTypeOne").subAggregation(AggregationBuilders.terms("agg").field("sheetTypeTwo"));
+        Map<String, Object> data = this.searchService.statSearch(index, type, constructor, builder);
+        System.out.println("返回结果:" + JSON.toJSONString(data));
+
+        data.entrySet()
+                .forEach(entry -> {
+                    System.out.println("两级分组统计返回：" + entry.getKey() + "---" + JSON.toJSONString(entry.getValue()));
+                });
 
     }
 
