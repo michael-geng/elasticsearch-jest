@@ -22,6 +22,7 @@ import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
+import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -535,8 +536,8 @@ public class ElasticSearchService {
      * @param constructor 查询构造
      * @param groupBy     统计分组字段
      */
-    public <T> Map<Object, Object> statSearch(String index, String type, ESQueryBuilderConstructor constructor, String groupBy) {
-        Map<Object, Object> map = new HashedMap();
+    public Map<String, Object> statSearch(String index, String type, ESQueryBuilderConstructor constructor, String groupBy) throws Exception {
+        Map<String, Object> map = new HashedMap();
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         if (constructor != null) {
             sourceBuilder.query(constructor.listBuilders());
@@ -545,34 +546,32 @@ public class ElasticSearchService {
         }
 
         sourceBuilder.from((constructor.getFrom()));
-        sourceBuilder.size(constructor.getSize() > MAX_SIZE ? MAX_SIZE : constructor.getSize());
+        sourceBuilder.size(constructor.getSize() > 0 ? constructor.getSize() : 0);
 
         sourceBuilder.timeout(new TimeValue(60, TimeUnit.SECONDS));
 
         sourceBuilder.aggregation(AggregationBuilders.terms("agg").field(groupBy));
 
-        //不需要 source
+        //不需要 source .timeZone(DateTimeZone.forID("Asia/Shanghai"))
         sourceBuilder.fetchSource(false);
+        logger.debug("查询条件:{}", sourceBuilder.toString());
 
         Search search = new Search.Builder(sourceBuilder.toString())
                 .addIndex(index)
                 .addType(type).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .build();
         SearchResult result = null;
-        try {
-            result = client.execute(search);
-            logger.debug("result:{}", result.getJsonString());
-            if (result.isSucceeded()){
-                result.getAggregations().getTermsAggregation("agg").getBuckets().forEach(item -> {
-                    map.put(item.getKey(), item.getCount());
-                });
-            }else {
-                logger.error("error, result: {}", result.getJsonString());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            logger.error("index stat exception: {}", e);
+        result = client.execute(search);
+        logger.debug("result:{}", result.getJsonString());
+
+        if (result.isSucceeded()){
+            result.getAggregations().getTermsAggregation("agg").getBuckets().forEach(item -> {
+                map.put(item.getKey(), item.getCount());
+            });
+        }else {
+            logger.error("error, result: {}", result.getJsonString());
         }
+
         //System.out.println("返回的聚合：" + result.getJsonString());
         return map;
     }
@@ -585,12 +584,12 @@ public class ElasticSearchService {
      * @param constructor 查询构造
      * @param agg         自定义计算
      */
-    public Map<Object, Object> statSearch(String index, String type, ESQueryBuilderConstructor constructor, AggregationBuilder agg) {
+    public Map<String, Object> statSearch(String index, String type, ESQueryBuilderConstructor constructor, AggregationBuilder agg) throws Exception{
 
         if (agg == null) {
             throw new ESServiceException("aggregationBuilder 不能为空");
         }
-        Map<Object, Object> map = new HashedMap();
+        Map<String, Object> map = new HashedMap();
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         if (constructor != null) {
             sourceBuilder.query(constructor.listBuilders());
@@ -599,7 +598,7 @@ public class ElasticSearchService {
         }
 
         sourceBuilder.from((constructor.getFrom()));
-        sourceBuilder.size(constructor.getSize() > 0 ? constructor.getSize() : MAX_SIZE);
+        sourceBuilder.size(constructor.getSize() > 0 ? constructor.getSize() : 0);
 
         sourceBuilder.timeout(new TimeValue(60, TimeUnit.SECONDS));
 
@@ -611,19 +610,19 @@ public class ElasticSearchService {
         }
 
         sourceBuilder.aggregation(agg);
+        sourceBuilder.fetchSource(false);
+
+        logger.debug("查询条件:{}", sourceBuilder.toString());
 
         Search search = new Search.Builder(sourceBuilder.toString())
                 .addIndex(index)
                 .addType(type).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .build();
         SearchResult result = null;
-        try {
-            result = client.execute(search);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        result = client.execute(search);
+        logger.debug("result:{}", result.getJsonString());
 
-        result.getAggregations().getTermsAggregation("agg").getBuckets().forEach(item -> {
+        result.getAggregations().getTermsAggregation(agg.getName()).getBuckets().forEach(item -> {
             map.put(item.getKey(), item.getCount());
         });
 

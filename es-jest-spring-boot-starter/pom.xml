@@ -37,7 +37,7 @@
 		<dependency>
 			<groupId>com.zhuanche.es.jest</groupId>
 			<artifactId>es-jest-service</artifactId>
-			<version>0.0.2-SNAPSHOT</version>
+			<version>0.0.3-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<groupId>io.searchbox</groupId>
@@ -83,6 +83,21 @@
 
 	</dependencies>
 
+
+	<distributionManagement>
+		<repository>
+			<id>nexus-releases</id>
+			<name>nexus releases repo</name>
+			<url>http://syrepo.01zhuanche.com/nexus/content/repositories/releases/</url>
+		</repository>
+
+		<snapshotRepository>
+			<id>nexus-snapshots</id>
+			<name>nexus snapshots repo</name>
+			<url>http://syrepo.01zhuanche.com/nexus/content/repositories/snapshots/</url>
+		</snapshotRepository>
+
+	</distributionManagement>
 
 	<build>
 		<plugins>

@@ -1,6 +1,7 @@
 package com.zhuanche.es.jest.bean;
 
 
+import com.alibaba.fastjson.annotation.JSONField;
 import io.searchbox.annotations.JestId;
 
 import java.io.Serializable;
@@ -183,11 +184,13 @@ public class WorkSheet implements Serializable {
     /**
      *创建时间
      */
+    @JSONField(format="yyyy-MM-dd HH:mm:ss")
     private Date createDate;
 
     /**
      *修改时间
      */
+    @JSONField(format="yyyy-MM-dd HH:mm:ss")
     private Date updateDate;
 
     /**

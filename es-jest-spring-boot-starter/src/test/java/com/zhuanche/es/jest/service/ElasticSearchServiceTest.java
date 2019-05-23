@@ -3,13 +3,22 @@ package com.zhuanche.es.jest.service;
 import com.alibaba.fastjson.JSON;
 import com.zhuanche.es.jest.*;
 import com.zhuanche.es.jest.bean.WorkSheet;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
+import org.elasticsearch.search.sort.SortOrder;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.LocalDate;
 import java.util.*;
+import java.util.function.Function;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes= ApplicationTest.class,
@@ -25,7 +34,7 @@ public class ElasticSearchServiceTest {
     private String index = "index-workorder";
     private String type = "worksheet";
 
-//    @Test
+    //    @Test
     public void deleteIndex() throws Exception{
         //删除
         this.searchService.deleteIndex(index);
@@ -95,27 +104,81 @@ public class ElasticSearchServiceTest {
         //constructor.must(new ESQueryBuilders().term("sheetSource", "3"));//单个值匹配   OK
         //constructor.must(new ESQueryBuilders().terms("sheetSource", Arrays.asList(3,6,4)));//多值匹配  OK
 
-        //constructor.must(new ESQueryBuilders().queryString("高德"));// ok
-        //constructor.must(new ESQueryBuilders().fuzzy("commitUserName", "刘佳*")); // OK
-        //constructor.must(new ESQueryBuilders().term("commitUserName", "刘佳星"));//OK 精确匹配
-        //constructor.must(new ESQueryBuilders().range("sheet_source", 0, 6 ));
+        //constructor.must(new ESQueryBuilders().term("licensePlates", "京BJM00测"));// ok
 
+        constructor.should(new ESQueryBuilders().term("commitUserName", "张威")
+        .term("contact", "15801098325"));//OK 精确匹配
+        //constructor.must(new ESQueryBuilders().range("sheet_source", 0, 6 ));
+//        constructor.must(new ESQueryBuilders().prefixString("licensePlates1","京BJM00"));
         //constructor.must(new ESQueryBuilders().terms("deptId", Arrays.asList(14, 9)));
+        //date
+        DateTime start = new DateTime().plusDays(-15);
+
+        System.out.println(start.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"));
+        System.out.println(new DateTime().toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"));
+        constructor.must(new ESQueryBuilders().range("createDate", start.toDate().getTime(), new DateTime().toDate().getTime()));
+
+        constructor.setFrom((page.getPageNo()-1) * page.getPageSize());
+        constructor.setSize(100);
+        constructor.addSort("id", SortOrder.DESC);
+
+        page = this.searchService.search(index, type, WorkSheet.class, constructor);
+        page.getList().forEach(item ->{
+            System.out.println(item.getId());
+        });
+        System.out.println("查询返回结果：" + JSON.toJSONString(page));
+    }
+
+
+    @Test
+    public void testSearchAndIncludeFields(){
+        Page<WorkSheet> page = new Page<>();
+
+        ESQueryBuilderConstructor constructor = new ESQueryBuilderConstructor();
 
         constructor.setFrom((page.getPageNo()-1) * page.getPageSize());
         constructor.setSize(page.getPageSize());
+
+        constructor.setIncludeFields(new String[]{"id"});
 
         page = this.searchService.search(index, type, WorkSheet.class, constructor);
         System.out.println("查询返回结果：" + JSON.toJSONString(page));
     }
 
     @Test
-    public void testStat(){
+    public void testStat() throws Exception{
         ESQueryBuilderConstructor constructor = new ESQueryBuilderConstructor();
         constructor.setFrom(0);
-        constructor.setSize(100);
-        Map<Object, Object> data = this.searchService.statSearch(index, type, constructor, "work_sheet_no");
+        constructor.setSize(0);
+        Map<String, Object> data = this.searchService.statSearch(index, type, constructor, "sheetTypeOne");
 
         System.out.println("返回结果:" + JSON.toJSONString(data));
     }
+
+    @Test
+    public void testStat2() throws Exception{
+        //按照 createDate 分组 按天分组
+        ESQueryBuilderConstructor constructor = new ESQueryBuilderConstructor();
+        constructor.setFrom(0);
+        constructor.setSize(0);
+        //加上时间过滤
+        DateTime start = new DateTime().plusDays(-10);
+        constructor.must(new ESQueryBuilders().range("createDate", start.toDate().getTime(), new DateTime().toDate().getTime()));
+
+        DateHistogramAggregationBuilder aggregationBuilder = AggregationBuilders.dateHistogram("dateagg")
+                .field("createDate")
+                .dateHistogramInterval(DateHistogramInterval.DAY)
+                .timeZone(DateTimeZone.forID("Asia/Shanghai"));
+                //.offset("+8h");
+
+        Map<String, Object> data = this.searchService.statSearch(index, type, constructor, aggregationBuilder);
+        System.out.println("返回结果:" + JSON.toJSONString(data));
+
+        data.entrySet().stream().sorted(Comparator.comparing(entry -> entry.getKey() ) )
+                .forEach(entry -> {
+                    System.out.println(new DateTime(new Date(Long.valueOf(entry.getKey().toString()))).toString("yyyy-MM-dd") + "---" + entry.getValue());
+        });
+
+    }
+
 }
