@@ -35,11 +35,11 @@ public class ElasticSearchServiceTest {
     private String index = "index-workorder";
     private String type = "worksheet";
 
-    //    @Test
+//        @Test
     public void deleteIndex() throws Exception{
         //删除
         this.searchService.deleteIndex(index);
-        this.createIndex();
+        //this.createIndex();
         //this.testInsertData();
     }
     @Test
@@ -74,6 +74,18 @@ public class ElasticSearchServiceTest {
     }
 
     @Test
+    public void testUpdate() throws Exception{
+        this.searchService.deleteData(index, type, "101328");
+
+        WorkSheet workSheet =  this.searchService.getData(index, type, "101328", WorkSheet.class);
+        workSheet.setUpdateDate(new Date(System.currentTimeMillis()));
+        workSheet.setUrgeTimes(2);
+        workSheet.setReopenTimes(3);
+        System.out.println(JSON.toJSONString(workSheet));
+        this.searchService.updateData(index, type, "101328", workSheet);
+    }
+
+    @Test
     public void testIndexExist(){
         System.out.println("索引是否存在：" + this.searchService.indexExist( index));
     }
@@ -103,17 +115,17 @@ public class ElasticSearchServiceTest {
 
         ESQueryBuilderConstructor constructor = new ESQueryBuilderConstructor();
         //constructor.must(new ESQueryBuilders().term("sheetSource", "3"));//单个值匹配   OK
-        //constructor.must(new ESQueryBuilders().terms("sheetSource", Arrays.asList(3,6,4)));//多值匹配  OK
+        constructor.must(new ESQueryBuilders().terms("deptId", Arrays.asList(94,93)));//多值匹配  OK
 
         //constructor.must(new ESQueryBuilders().term("licensePlates", "京BJM00测"));// ok
 
-        constructor.should(new ESQueryBuilders().term("commitUserName", "张威")
-        .term("contact", "15801098325"));//OK 精确匹配
+        //constructor.should(new ESQueryBuilders().term("commitUserName", "张威")
+        //.term("contact", "15801098325"));//OK 精确匹配
         //constructor.must(new ESQueryBuilders().range("sheet_source", 0, 6 ));
 //        constructor.must(new ESQueryBuilders().prefixString("licensePlates1","京BJM00"));
         //constructor.must(new ESQueryBuilders().terms("deptId", Arrays.asList(14, 9)));
         //date
-        DateTime start = new DateTime().plusDays(-15);
+        DateTime start = new DateTime().plusDays(-35);
 
         System.out.println(start.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"));
         System.out.println(new DateTime().toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"));

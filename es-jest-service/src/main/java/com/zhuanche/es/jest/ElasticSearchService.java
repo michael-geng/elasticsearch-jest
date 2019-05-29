@@ -1,9 +1,8 @@
 package com.zhuanche.es.jest;
 
-import io.searchbox.client.JestClient;
-import io.searchbox.client.JestClientFactory;
-import io.searchbox.client.JestResult;
-import io.searchbox.client.JestResultHandler;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import io.searchbox.client.*;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.*;
 import io.searchbox.indices.*;
@@ -27,12 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-
 public class ElasticSearchService {
     private final Logger logger = LoggerFactory.getLogger(ElasticSearchService.class);
 
@@ -41,6 +36,9 @@ public class ElasticSearchService {
 
     private JestClient client;
 
+    private Gson gson;
+
+
     /**
      * es 的相关属性
      */
@@ -48,7 +46,14 @@ public class ElasticSearchService {
     private Integer maxTotal;
     private Integer perTotal;
 
+    public ElasticSearchService() {
+        gson = (new GsonBuilder()).setDateFormat(AbstractJestClient.ELASTIC_SEARCH_DATE_FORMAT).create();
+    }
+
     public ElasticSearchService(String esUrl, Integer maxTotal, Integer perTotal) {
+
+        this();
+
         this.esUrl = esUrl;
         this.maxTotal = maxTotal;
         this.perTotal = perTotal;
@@ -63,9 +68,11 @@ public class ElasticSearchService {
                 .build());
         this.client = factory.getObject();
 
+
     }
 
     public ElasticSearchService(JestClient client) {
+        this();
         this.client = client;
     }
 
@@ -249,17 +256,45 @@ public class ElasticSearchService {
 
     /**
      * 功能描述：更新数据
+     * String script = "{" +
+     "    \"doc\" : {" +
+     "        \"title\" : \""+ entity.getTitle()+"\"," +
+     "    }" +
+     "}";
+     */
+    public <T> void updateData(String index, String type, String _id, String script) {
+        try {
+            JestResult jestResult = client.execute(new Update.Builder(script).id(_id)
+                    .index(index)
+                    .type(type)
+                    .build());
+            if (!jestResult.isSucceeded()){
+                logger.error("update error {}", jestResult.getJsonString());
+            }
+        } catch (IOException e) {
+            throw new ESServiceException("index doc update exception:" + e.getMessage());
+        }
+    }
+
+    /**
+     * 功能描述：更新数据
      *
      * @param index 索引名
      * @param type  类型
      * @param _id   数据id
      */
     public <T> void updateData(String index, String type, String _id, T entity) {
+        Map<String, Object> script = new HashMap<>();
+        script.put("doc", entity);
+
         try {
-            client.execute(new Update.Builder(entity).id(_id)
+            JestResult jestResult = client.execute(new Update.Builder( gson.toJson(script)).id(_id)
                     .index(index)
                     .type(type)
                     .build());
+            if (!jestResult.isSucceeded()){
+                logger.error("update error {}", jestResult.getJsonString());
+            }
         } catch (IOException e) {
             throw new ESServiceException("index doc update exception:" + e.getMessage());
         }
@@ -273,43 +308,30 @@ public class ElasticSearchService {
      * @param _id   数据id
      */
     public <T> void updateDataAsync(String index, String type, String _id, T entity) {
+        Map<String, Object> script = new HashMap<>();
+        script.put("doc", entity);
 
-        client.executeAsync(new Update.Builder(entity).id(_id)
+        client.executeAsync(new Update.Builder(gson.toJson(script)).id(_id)
                 .index(index)
                 .type(type)
                 .build(), new JestResultHandler<JestResult>() {
-            @Override
-            public void completed(JestResult result) {
-                logger.debug("insert success");
-            }
+                            @Override
+                            public void completed(JestResult result) {
+                                if (!result.isSucceeded()){
+                                    System.out.println("错误" + result.getJsonString());
+                                }
+                                System.out.println("成功了");
+                                logger.debug("insert success");
+                            }
 
-            @Override
-            public void failed(Exception e) {
-                e.printStackTrace();
-                logger.error("update error:{}", e.getMessage());
-            }
-        });
+                            @Override
+                            public void failed(Exception e) {
+                                e.printStackTrace();
+                                logger.error("update error:{}", e.getMessage());
+                            }
+                        });
 
-    }
 
-    /**
-     * 功能描述：更新数据
-     *
-     * @param index 索引名
-     * @param type  类型
-     * @param _id   数据id
-     * @param json  数据
-     */
-    public void updateData(String index, String type, String _id, String json)  {
-        try {
-            client.execute(new Update.Builder(json).id(_id)
-                    .index(index)
-                    .type(type)
-                    .build());
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new ESServiceException("index doc update exception:" + e.getMessage());
-        }
     }
 
     /**
