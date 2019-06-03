@@ -13,7 +13,7 @@ jest 地址：https://github.com/searchbox-io/Jest
 ```
 * 配置
 ```$xslt
-es.url: http://dev-es01-a.es.01zhuanche.com:9200
+es.url: http://host:9200
 es.max-total: 100
 es.per-total: 100
 ```
@@ -98,7 +98,7 @@ es.per-total: 100
 * 使用 spring配置
 ```$xslt
 <bean id="elasticSearchService" class="com.zhuanche.es.jest.ElasticSearchService">
-        <constructor-arg index="0" value="http://dev-es01-a.es.01zhuanche.com:9200" />
+        <constructor-arg index="0" value="http://host:9200" />
         <constructor-arg index="1" value="100"/>
         <constructor-arg index="2" value="100"/>
     </bean>

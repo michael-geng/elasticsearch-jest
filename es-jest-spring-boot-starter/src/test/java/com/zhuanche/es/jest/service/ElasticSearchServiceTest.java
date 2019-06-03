@@ -3,11 +3,14 @@ package com.zhuanche.es.jest.service;
 import com.alibaba.fastjson.JSON;
 import com.zhuanche.es.jest.*;
 import com.zhuanche.es.jest.bean.WorkSheet;
+import io.searchbox.core.SearchResult;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.sum.SumAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.valuecount.ValueCountAggregationBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -93,7 +96,7 @@ public class ElasticSearchServiceTest {
     @Test
     public void testAddAliases() throws Exception{
         List<String> list = Arrays.asList(index);
-        this.searchService.addAlias(list , "index-alias");
+        this.searchService.addAlias(list , "index-workorder_alias");
         this.testGetIndexAliases();
     }
 
@@ -166,6 +169,26 @@ public class ElasticSearchServiceTest {
         Map<String, Object> data = this.searchService.statSearch(index, type, constructor, "sheetTypeOne");
 
         System.out.println("返回结果:" + JSON.toJSONString(data));
+    }
+
+    @Test
+    public void testStat1() throws Exception{
+        //统计待办个数
+        ESQueryBuilderConstructor constructor = new ESQueryBuilderConstructor();
+        constructor.setFrom(0);
+        constructor.setSize(0);
+        constructor.must(new ESQueryBuilders().term("currentStatus", 1).term("currentDealUserId", "1500"));
+        ValueCountAggregationBuilder aggregationBuilder = AggregationBuilders.count("count").field("id");
+        //.offset("+8h");
+
+        SearchResult data = this.searchService.stat(index, type, constructor, aggregationBuilder);
+        System.out.println("返回结果:" + data.getJsonString());
+        if (data.isSucceeded()){
+            data.getAggregations().getValueCountAggregation("count").getValueCount();
+            System.out.println("获取数量" + data.getAggregations().getValueCountAggregation("count").getValueCount());
+        }
+
+
     }
 
     @Test

@@ -31,13 +31,14 @@
 			<groupId>org.elasticsearch</groupId>
 			<artifactId>elasticsearch</artifactId>
 			<version>5.5.3</version>
+
 		</dependency>
 
 
 		<dependency>
 			<groupId>com.zhuanche.es.jest</groupId>
 			<artifactId>es-jest-service</artifactId>
-			<version>0.0.3-SNAPSHOT</version>
+			<version>0.0.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>io.searchbox</groupId>
@@ -48,7 +49,15 @@
 					<groupId>org.elasticsearch</groupId>
 					<artifactId>elasticsearch</artifactId>
 				</exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
 
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
 			</exclusions>
 		</dependency>
 
@@ -88,13 +97,13 @@
 		<repository>
 			<id>nexus-releases</id>
 			<name>nexus releases repo</name>
-			<url>http://syrepo.01zhuanche.com/nexus/content/repositories/releases/</url>
+			<url>http://***/content/repositories/releases/</url>
 		</repository>
 
 		<snapshotRepository>
 			<id>nexus-snapshots</id>
 			<name>nexus snapshots repo</name>
-			<url>http://syrepo.01zhuanche.com/nexus/content/repositories/snapshots/</url>
+			<url>http://****/content/repositories/snapshots/</url>
 		</snapshotRepository>
 
 	</distributionManagement>
